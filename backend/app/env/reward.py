@@ -31,7 +31,10 @@ def _would_have_exfiltrated(state: NetworkState, prev_state: NetworkState, actio
     if action.type not in {"isolate_host", "block_connection"}:
         return False
     target = state.get_host(action.target)
-    was_hot = prev_state.get_host(target.host_id).compromise_level >= 3
+    prev_target = prev_state.maybe_get_host(target.host_id)
+    if prev_target is None:
+        return False
+    was_hot = prev_target.compromise_level >= 3
     return was_hot and target.outbound_data_volume > 0.4
 
 
@@ -39,7 +42,9 @@ def compute_reward(state: NetworkState, action: BlueAction, prev_state: NetworkS
     reward = 0.0
 
     for host in state.hosts:
-        prev_host = prev_state.get_host(host.host_id)
+        prev_host = prev_state.maybe_get_host(host.host_id)
+        if prev_host is None:
+            continue
         if host.is_compromised_detected and not prev_host.is_compromised_detected:
             if host.compromise_step < 0:
                 steps_since_compromise = state.step
@@ -67,7 +72,9 @@ def compute_reward(state: NetworkState, action: BlueAction, prev_state: NetworkS
         reward -= 0.4 * host.criticality
 
     for host in state.hosts:
-        prev_host = prev_state.get_host(host.host_id)
+        prev_host = prev_state.maybe_get_host(host.host_id)
+        if prev_host is None:
+            continue
         if host.compromise_level == 4 and prev_host.compromise_level < 4:
             reward -= 2.0 * host.criticality
 

@@ -110,7 +110,11 @@ class NetworkState:
     def newly_compromised_hosts(self, prev_state: "NetworkState") -> list[HostState]:
         new_hosts: list[HostState] = []
         for host in self.hosts:
-            prev = prev_state.get_host(host.host_id)
+            prev = prev_state.maybe_get_host(host.host_id)
+            if prev is None:
+                if host.compromise_level > 0:
+                    new_hosts.append(host)
+                continue
             if host.compromise_level > prev.compromise_level:
                 new_hosts.append(host)
         return new_hosts
