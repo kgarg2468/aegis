@@ -19,16 +19,13 @@ from ops.scripts.validate_replay import validate_replay
 
 app = typer.Typer(add_completion=False)
 
-EVAL_SUITE = {
-    "suite_id": "heldout_suite_v1",
-    "scenarios": [
-        {"scenario": "eduroam_harvest", "seeds": [1001, 1002]},
-        {"scenario": "faculty_phish", "seeds": [1003, 1004]},
-        {"scenario": "iot_botnet", "seeds": [1005, 1006]},
-        {"scenario": "insider_threat", "seeds": [1007, 1008]},
-        {"scenario": "ransomware_cascade", "seeds": [1009, 1010]},
-    ],
-}
+EVAL_SCENARIOS = [
+    "eduroam_harvest",
+    "faculty_phish",
+    "iot_botnet",
+    "insider_threat",
+    "ransomware_cascade",
+]
 
 
 class NoDefenseBaseline:
@@ -220,14 +217,32 @@ def _copy_bundle(src: Path, dst: Path) -> None:
     shutil.copytree(src, dst)
 
 
+def build_eval_suite(seeds_per_scenario: int = 2, seed_start: int = 1001) -> dict:
+    cursor = int(seed_start)
+    scenarios: list[dict] = []
+    for scenario_id in EVAL_SCENARIOS:
+        seeds = list(range(cursor, cursor + int(seeds_per_scenario)))
+        cursor += int(seeds_per_scenario)
+        scenarios.append({"scenario": scenario_id, "seeds": seeds})
+
+    return {
+        "suite_id": f"heldout_suite_v1_s{int(seeds_per_scenario)}_start{int(seed_start)}",
+        "scenarios": scenarios,
+    }
+
+
 @app.command()
 def main(
     checkpoint_path: str | None = typer.Option(None, help="Path to trained RLlib checkpoint"),
     runs_root: str = typer.Option("runs", help="Root output directory"),
     run_id: str | None = typer.Option(None, help="Run id to reuse"),
+    seeds_per_scenario: int = typer.Option(2, min=1, help="Number of deterministic seeds per scenario"),
+    seed_start: int = typer.Option(1001, min=0, help="Starting seed used to generate the held-out suite"),
 ) -> None:
     run_dirs = create_run_dirs(runs_root=runs_root, run_id=run_id)
     run_id_value = str(run_dirs["run_id"])
+
+    eval_suite = build_eval_suite(seeds_per_scenario=seeds_per_scenario, seed_start=seed_start)
 
     replay_dir = run_dirs["replay_dir"]
     eval_dir = run_dirs["eval_dir"]
@@ -242,7 +257,7 @@ def main(
     rule_reports: list[dict] = []
 
     episode_idx = 0
-    for scenario_entry in EVAL_SUITE["scenarios"]:
+    for scenario_entry in eval_suite["scenarios"]:
         scenario_id = scenario_entry["scenario"]
         for seed in scenario_entry["seeds"]:
             episode_idx += 1
@@ -307,7 +322,7 @@ def main(
         "eval_id": eval_id,
         "run_id": run_id_value,
         "checkpoint_id": checkpoint_id,
-        "suite": EVAL_SUITE,
+        "suite": eval_suite,
         "eval_results": eval_results,
         "kpis": kpis,
         "gates": gates,

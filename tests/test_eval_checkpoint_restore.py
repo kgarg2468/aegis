@@ -56,3 +56,10 @@ def test_load_trained_policy_falls_back_when_checkpoint_missing():
     action = policy({"node_features": np.zeros((28, 22), dtype=np.float32)})
     assert isinstance(action, list)
     assert len(action) == 2
+
+
+def test_build_eval_suite_uses_requested_seed_parameters():
+    suite = eval_module.build_eval_suite(seeds_per_scenario=3, seed_start=42)
+    assert suite["suite_id"] == "heldout_suite_v1_s3_start42"
+    assert len(suite["scenarios"]) == 5
+    assert suite["scenarios"][0]["seeds"] == [42, 43, 44]
