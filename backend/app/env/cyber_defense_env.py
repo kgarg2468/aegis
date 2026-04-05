@@ -20,7 +20,7 @@ from backend.app.env.detection_model import compute_detection_probability
 from backend.app.env.network_state import NetworkState, host_visual_state
 from backend.app.env.red_policies import sample_scenario
 from backend.app.env.registry import BLUE_ACTIONS, NODE_REGISTRY_IDS
-from backend.app.env.reward import BlueAction, compute_episode_bonus, compute_reward
+from backend.app.env.reward import DEFAULT_REWARD_WEIGHTS, BlueAction, compute_episode_bonus, compute_reward
 from backend.app.env.topology_generator import generate_chapman_topology
 from backend.app.explainability.rationale import generate_explainability
 
@@ -42,9 +42,20 @@ class CyberDefenseEnv(gym.Env):
                 "global_features": spaces.Box(0, 1, (6,), dtype=np.float32),
                 "adjacency": spaces.Box(0, 1, (self.max_nodes, self.max_nodes), dtype=np.float32),
                 "alert_history": spaces.Box(0, 1, (10, self.max_nodes), dtype=np.float32),
+                "action_mask": spaces.Box(0, 1, (6, self.max_nodes), dtype=np.float32),
             }
         )
         self.action_space = spaces.MultiDiscrete([6, self.max_nodes])
+        self.reward_weights = dict(DEFAULT_REWARD_WEIGHTS)
+        raw_weights = self.config.get("reward_weights", {})
+        if isinstance(raw_weights, dict):
+            for key, value in raw_weights.items():
+                if key not in self.reward_weights:
+                    continue
+                try:
+                    self.reward_weights[key] = float(value)
+                except (TypeError, ValueError):
+                    continue
 
         self.network_state: NetworkState | None = None
         self.red_policy = None
@@ -126,6 +137,7 @@ class CyberDefenseEnv(gym.Env):
             self.network_state,
             BlueAction(type=action_name, target=target_host),
             prev_state,
+            reward_weights=self.reward_weights,
         )
 
         self._update_alert_history()
@@ -489,6 +501,7 @@ class CyberDefenseEnv(gym.Env):
             "global_features": self._encode_global_features(),
             "adjacency": self._encode_adjacency(),
             "alert_history": self.alert_history.copy(),
+            "action_mask": self._get_action_mask().astype(np.float32),
         }
 
     def _encode_node_features(self) -> np.ndarray:

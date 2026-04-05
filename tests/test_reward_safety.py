@@ -44,3 +44,25 @@ def test_newly_compromised_hosts_handles_nodes_missing_in_prev_state():
 
     newly = current_state.newly_compromised_hosts(prev_state)
     assert [host.host_id for host in newly] == ["decoy_test"]
+
+
+def test_reward_weights_override_changes_reward_magnitude():
+    prev_state = generate_chapman_topology(np.random.default_rng(11))
+    state = prev_state.clone()
+    state.step = 1
+
+    action = BlueAction(type="patch_service", target="auth_server")
+    reward_low_cost = compute_reward(
+        state=state,
+        action=action,
+        prev_state=prev_state,
+        reward_weights={"action_cost_scale": 0.1},
+    )
+    reward_high_cost = compute_reward(
+        state=state,
+        action=action,
+        prev_state=prev_state,
+        reward_weights={"action_cost_scale": 2.0},
+    )
+
+    assert reward_low_cost > reward_high_cost

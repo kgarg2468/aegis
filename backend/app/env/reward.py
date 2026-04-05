@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from backend.app.env.network_state import HostState, NetworkState
@@ -12,6 +13,21 @@ ACTION_COSTS: dict[str, dict[str, float]] = {
     "block_connection": {"base_cost": 0.08, "criticality_multiplier": 0.15},
     "rotate_credentials": {"base_cost": 0.1, "criticality_multiplier": 0.2},
     "deploy_deception": {"base_cost": 0.03, "criticality_multiplier": 0.0},
+}
+
+DEFAULT_REWARD_WEIGHTS: dict[str, float] = {
+    "early_detection_bonus_mult": 0.8,
+    "isolation_downstream_mult": 0.9,
+    "exfil_prevent_bonus": 1.5,
+    "newly_compromised_penalty_mult": 1.0,
+    "exfiltration_penalty_mult": 4.0,
+    "benign_isolation_penalty_mult": 0.3,
+    "availability_drop_penalty_mult": 0.45,
+    "passive_monitor_under_attack_penalty": 0.15,
+    "service_availability_bonus_mult": 0.01,
+    "persistent_compromise_penalty_per_step": 0.08,
+    "undetected_compromise_penalty_per_step": 0.12,
+    "action_cost_scale": 0.75,
 }
 
 
@@ -38,7 +54,28 @@ def _would_have_exfiltrated(state: NetworkState, prev_state: NetworkState, actio
     return was_hot and target.outbound_data_volume > 0.4
 
 
-def compute_reward(state: NetworkState, action: BlueAction, prev_state: NetworkState) -> float:
+def _resolve_reward_weights(reward_weights: Mapping[str, float] | None) -> dict[str, float]:
+    merged = dict(DEFAULT_REWARD_WEIGHTS)
+    if reward_weights is None:
+        return merged
+
+    for key, value in reward_weights.items():
+        if key not in merged:
+            continue
+        try:
+            merged[key] = float(value)
+        except (TypeError, ValueError):
+            continue
+    return merged
+
+
+def compute_reward(
+    state: NetworkState,
+    action: BlueAction,
+    prev_state: NetworkState,
+    reward_weights: Mapping[str, float] | None = None,
+) -> float:
+    w = _resolve_reward_weights(reward_weights)
     reward = 0.0
 
     for host in state.hosts:
@@ -51,7 +88,7 @@ def compute_reward(state: NetworkState, action: BlueAction, prev_state: NetworkS
             else:
                 steps_since_compromise = max(0, state.step - host.compromise_step)
             early_detection_bonus = max(0.0, 1.0 - steps_since_compromise * 0.1)
-            reward += 0.3 * early_detection_bonus * host.criticality
+            reward += w["early_detection_bonus_mult"] * early_detection_bonus * host.criticality
 
     if action.type == "isolate_host":
         target = state.get_host(action.target)
@@ -61,37 +98,45 @@ def compute_reward(state: NetworkState, action: BlueAction, prev_state: NetworkS
                 for neighbor in state.iter_neighbors(action.target)
                 if neighbor.compromise_level == 0
             )
-            reward += 0.5 * downstream_value
+            reward += w["isolation_downstream_mult"] * downstream_value
 
     if action.type in {"isolate_host", "block_connection"} and _would_have_exfiltrated(state, prev_state, action):
-        reward += 1.0
+        reward += w["exfil_prevent_bonus"]
 
-    reward += 0.02 * state.service_availability_score
+    reward += w["service_availability_bonus_mult"] * state.service_availability_score
 
     for host in state.newly_compromised_hosts(prev_state):
-        reward -= 0.4 * host.criticality
+        reward -= w["newly_compromised_penalty_mult"] * host.criticality
 
     for host in state.hosts:
         prev_host = prev_state.maybe_get_host(host.host_id)
         if prev_host is None:
             continue
         if host.compromise_level == 4 and prev_host.compromise_level < 4:
-            reward -= 2.0 * host.criticality
+            reward -= w["exfiltration_penalty_mult"] * host.criticality
+
+    for host in state.hosts:
+        if host.is_decoy or host.compromise_level <= 0:
+            continue
+        severity = max(0.25, min(1.0, host.compromise_level / 4.0))
+        reward -= w["persistent_compromise_penalty_per_step"] * host.criticality * severity
+        if not host.is_compromised_detected:
+            reward -= w["undetected_compromise_penalty_per_step"] * host.criticality
 
     action_cost = compute_action_cost(action.type, state.get_host(action.target))
-    reward -= action_cost
+    reward -= w["action_cost_scale"] * action_cost
 
     if action.type in {"isolate_host", "block_connection"}:
         target = state.get_host(action.target)
         if target.compromise_level == 0 and not target.credential_compromised:
-            reward -= 0.2 * target.criticality
+            reward -= w["benign_isolation_penalty_mult"] * target.criticality
 
     avail_drop = prev_state.service_availability_score - state.service_availability_score
     if avail_drop > 0:
-        reward -= 0.3 * avail_drop
+        reward -= w["availability_drop_penalty_mult"] * avail_drop
 
     if action.type == "monitor_host" and state.attack_pressure_score > 0.5:
-        reward -= 0.05
+        reward -= w["passive_monitor_under_attack_penalty"]
 
     return float(reward)
 

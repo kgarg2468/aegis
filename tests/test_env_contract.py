@@ -14,13 +14,17 @@ def test_env_observation_and_action_shapes():
     env = CyberDefenseEnv({"max_steps": 10})
     obs, info = env.reset(seed=7)
 
-    assert set(obs.keys()) == {"node_features", "global_features", "adjacency", "alert_history"}
+    assert set(obs.keys()) == {"node_features", "global_features", "adjacency", "alert_history", "action_mask"}
     assert obs["node_features"].shape == (28, 22)
     assert obs["global_features"].shape == (6,)
     assert obs["adjacency"].shape == (28, 28)
     assert obs["alert_history"].shape == (10, 28)
+    assert obs["action_mask"].shape == (6, 28)
+    assert np.issubdtype(obs["action_mask"].dtype, np.floating)
     assert env.action_space.nvec.tolist() == [6, 28]
     assert "topology" in info
+    assert "valid_action_mask" in info
+    assert info["valid_action_mask"].shape == (6, 28)
 
 
 def test_block_connection_uses_highest_risk_edge_priority():
