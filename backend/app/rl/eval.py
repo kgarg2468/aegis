@@ -70,6 +70,23 @@ def compute_kpis(eval_results: dict) -> dict:
     }
 
 
+def _register_rllib_components() -> None:
+    from ray.rllib.models import ModelCatalog
+    from ray.tune.registry import register_env
+
+    from backend.app.rl.model import AegisBlueNet
+
+    # Safe to attempt re-registration in long-lived processes.
+    try:
+        ModelCatalog.register_custom_model("aegis_blue_net", AegisBlueNet)
+    except Exception:
+        pass
+    try:
+        register_env("CyberDefenseEnv", lambda env_cfg: CyberDefenseEnv(env_cfg))
+    except Exception:
+        pass
+
+
 def _load_trained_policy(checkpoint_path: str | None) -> Callable[[dict], list[int]]:
     if not checkpoint_path:
         rule = RuleBasedBaseline()
@@ -81,12 +98,16 @@ def _load_trained_policy(checkpoint_path: str | None) -> Callable[[dict], list[i
         return rule.select_action
 
     try:
+        import ray
         from ray.rllib.algorithms.algorithm import Algorithm
     except ImportError:
         rule = RuleBasedBaseline()
         return rule.select_action
 
-    algo = Algorithm.from_checkpoint(str(checkpoint))
+    ray.init(ignore_reinit_error=True)
+    _register_rllib_components()
+
+    algo = Algorithm.from_checkpoint(str(checkpoint.resolve()))
 
     def select_action(obs: dict) -> list[int]:
         action = algo.compute_single_action(obs, explore=False)
