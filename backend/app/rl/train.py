@@ -7,7 +7,7 @@ import typer
 
 from backend.app.env.cyber_defense_env import CyberDefenseEnv
 from backend.app.replay.run_manager import create_run_dirs
-from backend.app.rl.config import PPO_CONFIG, stage_timesteps
+from backend.app.rl.config import build_stage_config
 
 app = typer.Typer(add_completion=False)
 
@@ -86,22 +86,38 @@ def _build_algo(config: dict):
     return ppo_config.build()
 
 
+def _load_config_overrides(config_overrides_path: str | None) -> dict | None:
+    if not config_overrides_path:
+        return None
+
+    path = Path(config_overrides_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Config overrides file not found: {path}")
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("Config overrides must be a JSON object")
+    return payload
+
+
 @app.command()
 def main(
     stage: str = typer.Option("smoke", help="smoke | sanity | full"),
     runs_root: str = typer.Option("runs", help="Root output directory"),
     run_id: str | None = typer.Option(None, help="Reuse an existing run id"),
+    config_overrides_path: str | None = typer.Option(
+        None,
+        help="Optional JSON file with PPO config overrides (deep-merged into default config)",
+    ),
 ) -> None:
     """Train PPO blue policy and save checkpoints under runs/runNNN/train."""
 
     run_dirs = create_run_dirs(runs_root=runs_root, run_id=run_id)
     run_id_value = str(run_dirs["run_id"])
 
-    target_timesteps = stage_timesteps(stage)
-
-    cfg = dict(PPO_CONFIG)
-    cfg["stop"] = dict(PPO_CONFIG["stop"])
-    cfg["stop"]["timesteps_total"] = target_timesteps
+    overrides = _load_config_overrides(config_overrides_path)
+    cfg = build_stage_config(stage, overrides=overrides)
+    target_timesteps = int(cfg["stop"]["timesteps_total"])
 
     algo = _build_algo(cfg)
     train_dir = run_dirs["train_dir"]
@@ -138,6 +154,8 @@ def main(
         "best_reward_mean": best_reward,
         "best_checkpoint": best_checkpoint_path,
         "final_checkpoint": final_checkpoint_path,
+        "config_overrides_path": config_overrides_path,
+        "config_overrides": overrides or {},
     }
     (train_dir / "train_metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 

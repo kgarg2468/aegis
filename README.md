@@ -36,7 +36,12 @@ make eval RUNS_ROOT=runs RUN_ID=run001 CHECKPOINT=/path/to/checkpoint
 
 # Validate a replay bundle
 make validate-replay BUNDLE=runs/run001/replays/replay_hero_01
+
+# Queue N full runs with eval + CI/variance tracking + conservative auto-tuning
+make autopilot RUNS_ROOT=runs NUM_RUNS=10 START_RUN_ID=run006
 ```
+
+Autopilot artifacts are written to `runs/autopilot/session_<timestamp>.json` and `.csv`.
 
 ## Docker-first run
 
@@ -48,6 +53,7 @@ docker run --rm \
   -e STAGE=smoke \
   -e RUNS_ROOT=runs \
   -e RUN_ID=run001 \
+  -e TRAIN_CONFIG_OVERRIDES_PATH=runs/run001/train/config_overrides.json \
   -e CUDA_VISIBLE_DEVICES=5,6,7 \
   -v "$PWD:/app" \
   shield-train

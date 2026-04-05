@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 PPO_CONFIG: dict = {
     "lr": 3e-4,
     "gamma": 0.99,
@@ -49,3 +51,24 @@ def stage_timesteps(stage: str) -> int:
     if stage == "full":
         return 3_000_000
     raise ValueError(f"Unknown stage: {stage}")
+
+
+def merge_config(base: dict, overrides: dict | None) -> dict:
+    """Deep-merge overrides into base and return a new config dict."""
+    merged = deepcopy(base)
+    if not overrides:
+        return merged
+
+    for key, value in overrides.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = merge_config(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def build_stage_config(stage: str, overrides: dict | None = None) -> dict:
+    cfg = merge_config(PPO_CONFIG, overrides)
+    cfg["stop"] = dict(cfg["stop"])
+    cfg["stop"]["timesteps_total"] = stage_timesteps(stage)
+    return cfg

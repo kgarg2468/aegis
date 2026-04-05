@@ -6,14 +6,19 @@ STAGE="${STAGE:-smoke}"
 RUNS_ROOT="${RUNS_ROOT:-runs}"
 RUN_ID="${RUN_ID:-}"
 CHECKPOINT_PATH="${CHECKPOINT_PATH:-}"
+TRAIN_CONFIG_OVERRIDES_PATH="${TRAIN_CONFIG_OVERRIDES_PATH:-}"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-5,6,7}"
 
 if [[ "$MODE" == "train" ]]; then
+  TRAIN_ARGS=(uv run --extra train python -m backend.app.rl.train --stage "$STAGE" --runs-root "$RUNS_ROOT")
   if [[ -n "$RUN_ID" ]]; then
-    uv run --extra train python -m backend.app.rl.train --stage "$STAGE" --runs-root "$RUNS_ROOT" --run-id "$RUN_ID"
-  else
-    uv run --extra train python -m backend.app.rl.train --stage "$STAGE" --runs-root "$RUNS_ROOT"
+    TRAIN_ARGS+=(--run-id "$RUN_ID")
   fi
+  if [[ -n "$TRAIN_CONFIG_OVERRIDES_PATH" ]]; then
+    TRAIN_ARGS+=(--config-overrides-path "$TRAIN_CONFIG_OVERRIDES_PATH")
+  fi
+
+  "${TRAIN_ARGS[@]}"
 elif [[ "$MODE" == "eval" ]]; then
   if [[ -n "$RUN_ID" && -n "$CHECKPOINT_PATH" ]]; then
     uv run --extra train python -m backend.app.rl.eval --runs-root "$RUNS_ROOT" --run-id "$RUN_ID" --checkpoint-path "$CHECKPOINT_PATH"

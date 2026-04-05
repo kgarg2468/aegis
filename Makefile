@@ -5,8 +5,13 @@ RUNS_ROOT ?= runs
 RUN_ID ?=
 CHECKPOINT ?=
 BUNDLE ?=
+NUM_RUNS ?= 10
+DOCKER_IMAGE ?= shield-train
+USE_DOCKER ?= true
+AUTO_TUNE ?= true
+START_RUN_ID ?=
 
-.PHONY: sync sync-train test train-smoke train-sanity train eval package-replays validate-replay
+.PHONY: sync sync-train test train-smoke train-sanity train eval package-replays validate-replay autopilot
 
 sync:
 	uv sync --extra dev
@@ -34,3 +39,6 @@ package-replays:
 
 validate-replay:
 	uv run python ops/scripts/validate_replay.py $(BUNDLE)
+
+autopilot:
+	CUDA_VISIBLE_DEVICES=$(CUDA_VISIBLE_DEVICES) uv run --extra train python -m backend.app.rl.autopilot --num-runs $(NUM_RUNS) --runs-root $(RUNS_ROOT) --stage full --docker-image $(DOCKER_IMAGE) $(if $(filter false,$(USE_DOCKER)),--no-use-docker,--use-docker) $(if $(filter false,$(AUTO_TUNE)),--no-auto-tune,--auto-tune) $(if $(START_RUN_ID),--start-run-id $(START_RUN_ID),)
