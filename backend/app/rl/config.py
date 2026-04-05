@@ -12,7 +12,7 @@ PPO_CONFIG: dict = {
     "minibatch_size": 512,
     "num_sgd_iter": 10,
     "num_rollout_workers": 8,
-    "rollout_fragment_length": 200,
+    "rollout_fragment_length": "auto",
     "batch_mode": "complete_episodes",
     "model": {
         "custom_model": "aegis_blue_net",
