@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 
+from backend.app.env.reward import DEFAULT_REWARD_WEIGHTS
+
 PPO_CONFIG: dict = {
     "lr": 3e-4,
     "gamma": 0.99,
@@ -33,6 +35,7 @@ PPO_CONFIG: dict = {
         "max_steps": 200,
         "max_nodes": 28,
         "scenario_weights": [0.2, 0.2, 0.2, 0.2, 0.2],
+        "reward_weights": deepcopy(DEFAULT_REWARD_WEIGHTS),
     },
     "checkpoint_freq": 50,
     "checkpoint_at_end": True,
@@ -67,8 +70,18 @@ def merge_config(base: dict, overrides: dict | None) -> dict:
     return merged
 
 
-def build_stage_config(stage: str, overrides: dict | None = None) -> dict:
+def build_stage_config(stage: str, overrides: dict | None = None, timesteps_override: int | None = None) -> dict:
     cfg = merge_config(PPO_CONFIG, overrides)
     cfg["stop"] = dict(cfg["stop"])
-    cfg["stop"]["timesteps_total"] = stage_timesteps(stage)
+    if timesteps_override is not None:
+        cfg["stop"]["timesteps_total"] = int(timesteps_override)
+        return cfg
+
+    has_stop_override = (
+        isinstance(overrides, dict)
+        and isinstance(overrides.get("stop"), dict)
+        and "timesteps_total" in overrides["stop"]
+    )
+    if not has_stop_override:
+        cfg["stop"]["timesteps_total"] = stage_timesteps(stage)
     return cfg

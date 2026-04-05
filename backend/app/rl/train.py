@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
+from numbers import Real
 from pathlib import Path
 
 import typer
@@ -100,6 +102,66 @@ def _load_config_overrides(config_overrides_path: str | None) -> dict | None:
     return payload
 
 
+def _nested_get(data: dict, path: tuple[str, ...]):
+    current = data
+    for key in path:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+        if current is None:
+            return None
+    return current
+
+
+def _extract_scalar_metric(result: dict, candidates: list[tuple[str, tuple[str, ...]]]) -> tuple[float | None, str | None]:
+    for source, path in candidates:
+        value = _nested_get(result, path)
+        if isinstance(value, Real):
+            return float(value), source
+    return None, None
+
+
+def _extract_training_metrics(result: dict) -> dict[str, float | str]:
+    reward_candidates = [
+        ("episode_reward_mean", ("episode_reward_mean",)),
+        ("env_runners.episode_reward_mean", ("env_runners", "episode_reward_mean")),
+        ("sampler_results.episode_reward_mean", ("sampler_results", "episode_reward_mean")),
+        ("env_runners.episode_return_mean", ("env_runners", "episode_return_mean")),
+    ]
+    reward_value, reward_source = _extract_scalar_metric(result, reward_candidates)
+    if reward_value is None:
+        reward_value = 0.0
+        reward_source = "missing"
+
+    learner_stat_keys = {
+        "policy_loss": [
+            ("info.learner.default_policy.learner_stats.policy_loss", ("info", "learner", "default_policy", "learner_stats", "policy_loss")),
+        ],
+        "vf_loss": [
+            ("info.learner.default_policy.learner_stats.vf_loss", ("info", "learner", "default_policy", "learner_stats", "vf_loss")),
+        ],
+        "entropy": [
+            ("info.learner.default_policy.learner_stats.entropy", ("info", "learner", "default_policy", "learner_stats", "entropy")),
+        ],
+        "kl": [
+            ("info.learner.default_policy.learner_stats.kl", ("info", "learner", "default_policy", "learner_stats", "kl")),
+        ],
+        "total_loss": [
+            ("info.learner.default_policy.learner_stats.total_loss", ("info", "learner", "default_policy", "learner_stats", "total_loss")),
+        ],
+    }
+
+    out: dict[str, float | str] = {
+        "reward_mean": reward_value,
+        "reward_source": reward_source,
+    }
+    for name, candidates in learner_stat_keys.items():
+        value, source = _extract_scalar_metric(result, candidates)
+        out[name] = float(value) if value is not None else float("nan")
+        out[f"{name}_source"] = source or "missing"
+    return out
+
+
 @app.command()
 def main(
     stage: str = typer.Option("smoke", help="smoke | sanity | full"),
@@ -109,6 +171,11 @@ def main(
         None,
         help="Optional JSON file with PPO config overrides (deep-merged into default config)",
     ),
+    train_timesteps: int | None = typer.Option(
+        None,
+        min=1,
+        help="Optional override for stop.timesteps_total (used for short sweeps)",
+    ),
 ) -> None:
     """Train PPO blue policy and save checkpoints under runs/runNNN/train."""
 
@@ -116,26 +183,43 @@ def main(
     run_id_value = str(run_dirs["run_id"])
 
     overrides = _load_config_overrides(config_overrides_path)
-    cfg = build_stage_config(stage, overrides=overrides)
+    cfg = build_stage_config(stage, overrides=overrides, timesteps_override=train_timesteps)
     target_timesteps = int(cfg["stop"]["timesteps_total"])
 
     algo = _build_algo(cfg)
     train_dir = run_dirs["train_dir"]
+    metrics_path = train_dir / "train_metrics.jsonl"
 
     checkpoint_freq = int(cfg.get("checkpoint_freq", 50))
     iteration = 0
     timesteps_total = 0
     best_reward = float("-inf")
+    best_reward_source = "missing"
     best_checkpoint_path = None
+    last_metrics: dict[str, float | str] = {}
 
     while timesteps_total < target_timesteps:
         iteration += 1
         result = algo.train()
         timesteps_total = int(result.get("timesteps_total", timesteps_total))
 
-        reward_mean = float(result.get("episode_reward_mean", 0.0))
+        iter_metrics = _extract_training_metrics(result)
+        reward_mean = float(iter_metrics["reward_mean"])
+        reward_source = str(iter_metrics["reward_source"])
+        last_metrics = dict(iter_metrics)
+
+        metrics_row = {
+            "timestamp_utc": datetime.now(UTC).isoformat(),
+            "iteration": iteration,
+            "timesteps_total": timesteps_total,
+            **iter_metrics,
+        }
+        with metrics_path.open("a", encoding="utf-8") as metrics_file:
+            metrics_file.write(json.dumps(metrics_row) + "\n")
+
         if reward_mean > best_reward:
             best_reward = reward_mean
+            best_reward_source = reward_source
             best_checkpoint_path = _checkpoint_path(algo.save(checkpoint_dir=str(train_dir / "best")))
 
         if iteration % checkpoint_freq == 0:
@@ -152,10 +236,14 @@ def main(
         "target_timesteps": target_timesteps,
         "timesteps_total": timesteps_total,
         "best_reward_mean": best_reward,
+        "best_reward_source": best_reward_source,
         "best_checkpoint": best_checkpoint_path,
         "final_checkpoint": final_checkpoint_path,
+        "metrics_file": str(metrics_path),
+        "final_iteration_metrics": last_metrics,
         "config_overrides_path": config_overrides_path,
         "config_overrides": overrides or {},
+        "train_timesteps_override": train_timesteps,
     }
     (train_dir / "train_metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 

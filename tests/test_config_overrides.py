@@ -26,3 +26,17 @@ def test_build_stage_config_sets_target_timesteps_with_overrides():
     assert cfg["lr"] == 2e-4
     assert cfg["stop"]["timesteps_total"] == 5000
     assert cfg["stop"]["episode_reward_mean"] == 7.0
+
+
+def test_build_stage_config_respects_timesteps_from_stop_override():
+    cfg = build_stage_config("smoke", overrides={"stop": {"timesteps_total": 7777}})
+    assert cfg["stop"]["timesteps_total"] == 7777
+
+
+def test_build_stage_config_train_timesteps_override_takes_priority():
+    cfg = build_stage_config(
+        "full",
+        overrides={"stop": {"timesteps_total": 5555}},
+        timesteps_override=12345,
+    )
+    assert cfg["stop"]["timesteps_total"] == 12345
