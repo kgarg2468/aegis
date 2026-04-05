@@ -46,6 +46,12 @@ def _build_algo(config: dict):
         )
     )
 
+    if hasattr(ppo_config, "api_stack"):
+        ppo_config = ppo_config.api_stack(
+            enable_rl_module_and_learner=False,
+            enable_env_runner_and_connector_v2=False,
+        )
+
     if hasattr(ppo_config, "env_runners"):
         ppo_config = ppo_config.env_runners(
             num_env_runners=config["num_rollout_workers"],
