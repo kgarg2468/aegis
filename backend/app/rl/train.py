@@ -40,7 +40,7 @@ def _build_algo(config: dict):
             vf_loss_coeff=config["vf_loss_coeff"],
             grad_clip=config["max_grad_norm"],
             train_batch_size=config["train_batch_size"],
-            sgd_minibatch_size=config["sgd_minibatch_size"],
+            minibatch_size=config.get("minibatch_size", config.get("sgd_minibatch_size", 512)),
             num_sgd_iter=config["num_sgd_iter"],
             model=config["model"],
         )

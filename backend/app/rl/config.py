@@ -9,7 +9,7 @@ PPO_CONFIG: dict = {
     "vf_loss_coeff": 0.5,
     "max_grad_norm": 0.5,
     "train_batch_size": 4096,
-    "sgd_minibatch_size": 512,
+    "minibatch_size": 512,
     "num_sgd_iter": 10,
     "num_rollout_workers": 8,
     "rollout_fragment_length": 200,
