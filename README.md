@@ -31,14 +31,17 @@ make train-smoke RUNS_ROOT=runs RUN_ID=run001
 # Full training stage
 make train RUNS_ROOT=runs RUN_ID=run001
 
-# Eval + replay packaging
-make eval RUNS_ROOT=runs RUN_ID=run001 CHECKPOINT=/path/to/checkpoint
+# Eval + replay packaging (set seeds_per_scenario for tighter CI bounds)
+make eval RUNS_ROOT=runs RUN_ID=run001 CHECKPOINT=/path/to/checkpoint EVAL_SEEDS_PER_SCENARIO=4 EVAL_SEED_START=2001
 
 # Validate a replay bundle
 make validate-replay BUNDLE=runs/run001/replays/replay_hero_01
 
 # Queue N full runs with eval + CI/variance tracking + conservative auto-tuning
 make autopilot RUNS_ROOT=runs NUM_RUNS=10 START_RUN_ID=run006
+
+# Queue a fixed sweep matrix (per-run overrides / timesteps / eval seeds)
+make autopilot RUNS_ROOT=runs START_RUN_ID=run006 NUM_RUNS=12 SWEEP_SPEC=ops/sweeps/fast_recovery_v1.json
 ```
 
 Autopilot artifacts are written to `runs/autopilot/session_<timestamp>.json` and `.csv`.
