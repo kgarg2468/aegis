@@ -1,0 +1,26 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_SYSTEM_PYTHON=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl ca-certificates build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir uv
+
+WORKDIR /app
+
+COPY pyproject.toml README.md /app/
+COPY backend /app/backend
+COPY ops /app/ops
+COPY tests /app/tests
+COPY Makefile /app/Makefile
+
+RUN uv sync --extra train --extra dev
+
+COPY docker/scripts/entrypoint_train_eval.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
