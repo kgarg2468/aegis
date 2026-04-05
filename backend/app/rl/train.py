@@ -41,18 +41,27 @@ def _build_algo(config: dict):
             grad_clip=config["max_grad_norm"],
             train_batch_size=config["train_batch_size"],
             minibatch_size=config.get("minibatch_size", config.get("sgd_minibatch_size", 512)),
-            num_sgd_iter=config["num_sgd_iter"],
+            num_epochs=config.get("num_epochs", config["num_sgd_iter"]),
             model=config["model"],
         )
-        .rollouts(
+    )
+
+    if hasattr(ppo_config, "env_runners"):
+        ppo_config = ppo_config.env_runners(
+            num_env_runners=config["num_rollout_workers"],
+            rollout_fragment_length=config["rollout_fragment_length"],
+            batch_mode=config["batch_mode"],
+        )
+    else:
+        ppo_config = ppo_config.rollouts(
             num_rollout_workers=config["num_rollout_workers"],
             rollout_fragment_length=config["rollout_fragment_length"],
             batch_mode=config["batch_mode"],
         )
-        .resources(
-            num_gpus=config["num_gpus"],
-            num_gpus_per_worker=config["num_gpus_per_worker"],
-        )
+
+    ppo_config = ppo_config.resources(
+        num_gpus=config["num_gpus"],
+        num_gpus_per_worker=config["num_gpus_per_worker"],
     )
     return ppo_config.build()
 
