@@ -12,6 +12,20 @@ from backend.app.rl.config import PPO_CONFIG, stage_timesteps
 app = typer.Typer(add_completion=False)
 
 
+def _checkpoint_path(save_result) -> str:
+    checkpoint = getattr(save_result, "checkpoint", None)
+    if checkpoint is not None:
+        path = getattr(checkpoint, "path", None)
+        if path is not None:
+            return str(path)
+
+    path = getattr(save_result, "path", None)
+    if path is not None:
+        return str(path)
+
+    return str(save_result)
+
+
 def _build_algo(config: dict):
     try:
         import ray
@@ -106,7 +120,7 @@ def main(
         reward_mean = float(result.get("episode_reward_mean", 0.0))
         if reward_mean > best_reward:
             best_reward = reward_mean
-            best_checkpoint_path = algo.save(checkpoint_dir=str(train_dir / "best"))
+            best_checkpoint_path = _checkpoint_path(algo.save(checkpoint_dir=str(train_dir / "best")))
 
         if iteration % checkpoint_freq == 0:
             algo.save(checkpoint_dir=str(train_dir / "checkpoints"))
@@ -114,7 +128,7 @@ def main(
         if reward_mean >= float(cfg["stop"].get("episode_reward_mean", float("inf"))):
             break
 
-    final_checkpoint_path = algo.save(checkpoint_dir=str(train_dir / "final"))
+    final_checkpoint_path = _checkpoint_path(algo.save(checkpoint_dir=str(train_dir / "final")))
 
     metadata = {
         "run_id": run_id_value,
@@ -122,8 +136,8 @@ def main(
         "target_timesteps": target_timesteps,
         "timesteps_total": timesteps_total,
         "best_reward_mean": best_reward,
-        "best_checkpoint": str(best_checkpoint_path) if best_checkpoint_path else None,
-        "final_checkpoint": str(final_checkpoint_path),
+        "best_checkpoint": best_checkpoint_path,
+        "final_checkpoint": final_checkpoint_path,
     }
     (train_dir / "train_metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
