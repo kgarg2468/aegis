@@ -9,11 +9,12 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 from statistics import mean, stdev
+from typing import Any
 
 import typer
 
 from backend.app.replay.run_manager import next_run_id
-from backend.app.rl.config import PPO_CONFIG
+from backend.app.rl.config import PPO_CONFIG, merge_config
 from ops.scripts.validate_replay import validate_replay
 
 app = typer.Typer(add_completion=False)
@@ -227,6 +228,65 @@ def _host_path(candidate: str, project_root: Path) -> Path:
     return p
 
 
+def _resolve_path(path_str: str, project_root: Path) -> Path:
+    path = Path(path_str)
+    if path.is_absolute():
+        return path
+    return project_root / path
+
+
+def _load_sweep_spec(path: Path) -> list[dict[str, Any]]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("Sweep spec must be a JSON object")
+
+    runs = payload.get("runs")
+    if not isinstance(runs, list) or not runs:
+        raise ValueError("Sweep spec must include a non-empty 'runs' list")
+
+    def _coerce_int(value: Any, *, field: str, minimum: int) -> int:
+        if isinstance(value, bool):
+            raise ValueError(f"Sweep field '{field}' must be an integer >= {minimum}")
+        try:
+            out = int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Sweep field '{field}' must be an integer >= {minimum}") from exc
+        if out < minimum:
+            raise ValueError(f"Sweep field '{field}' must be >= {minimum}")
+        return out
+
+    normalized: list[dict[str, Any]] = []
+    for idx, run in enumerate(runs):
+        if not isinstance(run, dict):
+            raise ValueError(f"Sweep run at index {idx} must be an object")
+        overrides = run.get("overrides", {})
+        if not isinstance(overrides, dict):
+            raise ValueError(f"Sweep run at index {idx} has invalid overrides (expected object)")
+        train_timesteps = run.get("train_timesteps")
+        if train_timesteps is not None:
+            train_timesteps = _coerce_int(train_timesteps, field=f"runs[{idx}].train_timesteps", minimum=1)
+        seeds_per_scenario = run.get("seeds_per_scenario")
+        if seeds_per_scenario is not None:
+            seeds_per_scenario = _coerce_int(
+                seeds_per_scenario,
+                field=f"runs[{idx}].seeds_per_scenario",
+                minimum=1,
+            )
+        seed_start = run.get("seed_start")
+        if seed_start is not None:
+            seed_start = _coerce_int(seed_start, field=f"runs[{idx}].seed_start", minimum=0)
+        normalized.append(
+            {
+                "label": str(run.get("label", f"sweep_{idx + 1:03d}")),
+                "overrides": overrides,
+                "train_timesteps": train_timesteps,
+                "seeds_per_scenario": seeds_per_scenario,
+                "seed_start": seed_start,
+            }
+        )
+    return normalized
+
+
 def _command_to_string(cmd: list[str]) -> str:
     return " ".join(shlex.quote(part) for part in cmd)
 
@@ -264,10 +324,11 @@ def _build_train_command(
     stage: str,
     cuda_visible_devices: str,
     config_overrides_path: Path,
+    train_timesteps: int | None,
 ) -> list[str]:
     if use_docker:
         container_overrides = _path_for_container(config_overrides_path, project_root)
-        return [
+        cmd = [
             "docker",
             "run",
             "--rm",
@@ -286,12 +347,19 @@ def _build_train_command(
             f"CUDA_VISIBLE_DEVICES={cuda_visible_devices}",
             "-e",
             f"TRAIN_CONFIG_OVERRIDES_PATH={container_overrides}",
-            "-v",
-            f"{project_root}:/app",
-            docker_image,
         ]
+        if train_timesteps is not None:
+            cmd.extend(["-e", f"TRAIN_TIMESTEPS={int(train_timesteps)}"])
+        cmd.extend(
+            [
+                "-v",
+                f"{project_root}:/app",
+                docker_image,
+            ]
+        )
+        return cmd
 
-    return [
+    cmd = [
         "uv",
         "run",
         "--extra",
@@ -308,6 +376,9 @@ def _build_train_command(
         "--config-overrides-path",
         str(config_overrides_path),
     ]
+    if train_timesteps is not None:
+        cmd.extend(["--train-timesteps", str(int(train_timesteps))])
+    return cmd
 
 
 def _build_eval_command(
@@ -319,6 +390,8 @@ def _build_eval_command(
     run_id: str,
     checkpoint_path: Path,
     cuda_visible_devices: str,
+    seeds_per_scenario: int,
+    seed_start: int,
 ) -> list[str]:
     if use_docker:
         container_checkpoint = _path_for_container(checkpoint_path, project_root)
@@ -339,6 +412,10 @@ def _build_eval_command(
             f"CHECKPOINT_PATH={container_checkpoint}",
             "-e",
             f"CUDA_VISIBLE_DEVICES={cuda_visible_devices}",
+            "-e",
+            f"EVAL_SEEDS_PER_SCENARIO={seeds_per_scenario}",
+            "-e",
+            f"EVAL_SEED_START={seed_start}",
             "-v",
             f"{project_root}:/app",
             docker_image,
@@ -358,6 +435,10 @@ def _build_eval_command(
         run_id,
         "--checkpoint-path",
         str(checkpoint_path),
+        "--seeds-per-scenario",
+        str(seeds_per_scenario),
+        "--seed-start",
+        str(seed_start),
     ]
 
 
@@ -374,7 +455,7 @@ def _latest_eval_file(eval_dir: Path, before: set[Path]) -> Path:
 
 def _select_checkpoint_path(train_metadata_path: Path, project_root: Path) -> Path:
     metadata = json.loads(train_metadata_path.read_text(encoding="utf-8"))
-    for field in ["best_checkpoint", "final_checkpoint"]:
+    for field in ["final_checkpoint", "best_checkpoint"]:
         candidate = metadata.get(field)
         if not candidate:
             continue
@@ -430,6 +511,17 @@ def main(
     cuda_visible_devices: str = typer.Option("5,6,7", help="CUDA_VISIBLE_DEVICES value"),
     start_run_id: str | None = typer.Option(None, help="Optional first run id (example: run006)"),
     auto_tune: bool = typer.Option(True, help="Apply conservative config tweaks between runs"),
+    train_timesteps: int | None = typer.Option(
+        None,
+        min=1,
+        help="Optional stop.timesteps_total override for each run unless sweep run overrides it",
+    ),
+    seeds_per_scenario: int = typer.Option(2, min=1, help="Eval seeds per scenario"),
+    seed_start: int = typer.Option(1001, min=0, help="Eval seed start"),
+    sweep_spec_path: str | None = typer.Option(
+        None,
+        help="Optional JSON sweep spec with per-run overrides/train_timesteps/eval seed options",
+    ),
 ) -> None:
     project_root = _project_root()
     runs_root_path = _runs_root_path(project_root, runs_root)
@@ -446,12 +538,40 @@ def main(
         raise ValueError(f"Invalid start run id: {start_run_id}")
     first_run_num = int(start_run_id[3:])
 
+    resolved_sweep_spec_path: Path | None = None
+    sweep_runs: list[dict[str, Any]] = []
+    if sweep_spec_path:
+        resolved_sweep_spec_path = _resolve_path(sweep_spec_path, project_root)
+        if not resolved_sweep_spec_path.exists():
+            raise FileNotFoundError(f"Sweep spec path not found: {resolved_sweep_spec_path}")
+        sweep_runs = _load_sweep_spec(resolved_sweep_spec_path)
+        if num_runs > len(sweep_runs):
+            raise ValueError(
+                f"num_runs={num_runs} exceeds runs in sweep spec ({len(sweep_runs)}): {resolved_sweep_spec_path}"
+            )
+
     run_records: list[dict] = []
-    current_overrides: dict[str, float | int] = dict(DEFAULT_AUTOTUNE_OVERRIDES)
+    current_overrides: dict[str, float | int] = dict(DEFAULT_AUTOTUNE_OVERRIDES) if auto_tune else {}
 
     for offset in range(num_runs):
         run_num = first_run_num + offset
         run_id = f"run{run_num:03d}"
+        sweep_entry: dict[str, Any] = sweep_runs[offset] if sweep_runs else {}
+        sweep_label = str(sweep_entry.get("label", run_id))
+        sweep_overrides = sweep_entry.get("overrides", {}) if sweep_entry else {}
+
+        run_overrides: dict[str, Any]
+        if auto_tune:
+            run_overrides = merge_config(dict(current_overrides), sweep_overrides)
+        else:
+            run_overrides = merge_config({}, sweep_overrides)
+
+        run_train_timesteps = sweep_entry.get("train_timesteps")
+        if run_train_timesteps is None:
+            run_train_timesteps = train_timesteps
+        run_seeds_per_scenario = int(sweep_entry.get("seeds_per_scenario", seeds_per_scenario))
+        run_seed_start = int(sweep_entry.get("seed_start", seed_start))
+
         run_dir = runs_root_path / run_id
         if run_dir.exists() and any(run_dir.iterdir()):
             raise RuntimeError(f"Run directory already exists and is not empty: {run_dir}")
@@ -463,12 +583,22 @@ def main(
             path.mkdir(parents=True, exist_ok=True)
 
         overrides_path = train_dir / "config_overrides.json"
-        if auto_tune:
-            _write_json(overrides_path, current_overrides)
-        else:
-            _write_json(overrides_path, {})
+        _write_json(overrides_path, run_overrides)
 
-        print(json.dumps({"event": "run_start", "run_id": run_id, "overrides": current_overrides}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "event": "run_start",
+                    "run_id": run_id,
+                    "label": sweep_label,
+                    "overrides": run_overrides,
+                    "train_timesteps": run_train_timesteps,
+                    "seeds_per_scenario": run_seeds_per_scenario,
+                    "seed_start": run_seed_start,
+                },
+                indent=2,
+            )
+        )
         run_started = time.time()
 
         train_cmd = _build_train_command(
@@ -480,6 +610,7 @@ def main(
             stage=stage,
             cuda_visible_devices=cuda_visible_devices,
             config_overrides_path=overrides_path,
+            train_timesteps=run_train_timesteps,
         )
         _run_with_log(train_cmd, cwd=project_root, log_path=logs_dir / "autopilot_train.log")
 
@@ -497,6 +628,8 @@ def main(
             run_id=run_id,
             checkpoint_path=checkpoint_path,
             cuda_visible_devices=cuda_visible_devices,
+            seeds_per_scenario=run_seeds_per_scenario,
+            seed_start=run_seed_start,
         )
         _run_with_log(eval_cmd, cwd=project_root, log_path=logs_dir / "autopilot_eval.log")
         eval_payload_path = _latest_eval_file(eval_dir, eval_before)
@@ -508,7 +641,11 @@ def main(
 
         tuning_reasons: list[str] = []
         if auto_tune:
-            current_overrides, tuning_reasons = suggest_next_overrides(aggregate, current_overrides)
+            tune_seed = {
+                key: run_overrides.get(key, current_overrides.get(key, value))
+                for key, value in DEFAULT_AUTOTUNE_OVERRIDES.items()
+            }
+            current_overrides, tuning_reasons = suggest_next_overrides(aggregate, tune_seed)
 
         row = {
             "timestamp_utc": datetime.now(UTC).isoformat(),
@@ -524,9 +661,16 @@ def main(
         run_ended = time.time()
         run_record = {
             "run_id": run_id,
+            "label": sweep_label,
             "started_at_unix": run_started,
             "ended_at_unix": run_ended,
             "duration_sec": round(run_ended - run_started, 2),
+            "config_overrides_path": str(overrides_path),
+            "applied_overrides": run_overrides,
+            "sweep_overrides": sweep_overrides,
+            "train_timesteps": run_train_timesteps,
+            "seeds_per_scenario": run_seeds_per_scenario,
+            "seed_start": run_seed_start,
             "train_metadata_path": str(metadata_path),
             "checkpoint_path": str(checkpoint_path),
             "eval_payload_path": str(eval_payload_path),
@@ -544,6 +688,10 @@ def main(
             "runs_root": str(runs_root_path),
             "num_runs_requested": num_runs,
             "auto_tune": auto_tune,
+            "train_timesteps_default": train_timesteps,
+            "eval_seeds_per_scenario_default": seeds_per_scenario,
+            "eval_seed_start_default": seed_start,
+            "sweep_spec_path": str(resolved_sweep_spec_path) if resolved_sweep_spec_path else None,
             "completed_runs": len(run_records),
             "current_overrides": current_overrides,
             "aggregate": aggregate,

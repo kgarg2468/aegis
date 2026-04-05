@@ -1,5 +1,13 @@
+import json
+
+import pytest
+
 from backend.app.rl.autopilot import (
     KPI_THRESHOLDS,
+    _build_eval_command,
+    _build_train_command,
+    _load_sweep_spec,
+    _select_checkpoint_path,
     compute_kpi_statistics,
     suggest_next_overrides,
 )
@@ -125,3 +133,87 @@ def test_suggest_next_overrides_keeps_config_until_at_least_two_runs():
 
     assert nxt == previous
     assert "not enough runs" in reasons[0].lower()
+
+
+def test_select_checkpoint_prefers_final_checkpoint(tmp_path):
+    (tmp_path / "final_ckpt").mkdir()
+    (tmp_path / "best_ckpt").mkdir()
+
+    train_metadata = {
+        "final_checkpoint": "/app/final_ckpt",
+        "best_checkpoint": "/app/best_ckpt",
+    }
+    metadata_path = tmp_path / "train_metadata.json"
+    metadata_path.write_text(json.dumps(train_metadata), encoding="utf-8")
+
+    selected = _select_checkpoint_path(metadata_path, project_root=tmp_path)
+    assert selected == (tmp_path / "final_ckpt")
+
+
+def test_load_sweep_spec_normalizes_and_validates(tmp_path):
+    spec = {
+        "runs": [
+            {
+                "label": "r1",
+                "overrides": {"lr": 2e-4},
+                "train_timesteps": 250000,
+                "seeds_per_scenario": 4,
+                "seed_start": 2001,
+            }
+        ]
+    }
+    path = tmp_path / "spec.json"
+    path.write_text(json.dumps(spec), encoding="utf-8")
+
+    runs = _load_sweep_spec(path)
+    assert len(runs) == 1
+    assert runs[0]["label"] == "r1"
+    assert runs[0]["train_timesteps"] == 250000
+    assert runs[0]["seeds_per_scenario"] == 4
+    assert runs[0]["seed_start"] == 2001
+
+
+def test_load_sweep_spec_rejects_invalid_seed_count(tmp_path):
+    spec = {"runs": [{"label": "bad", "overrides": {}, "seeds_per_scenario": 0}]}
+    path = tmp_path / "bad_spec.json"
+    path.write_text(json.dumps(spec), encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        _load_sweep_spec(path)
+
+
+def test_build_train_command_includes_train_timesteps_for_local_runs(tmp_path):
+    cmd = _build_train_command(
+        use_docker=False,
+        docker_image="shield-train",
+        project_root=tmp_path,
+        runs_root="runs",
+        run_id="run123",
+        stage="full",
+        cuda_visible_devices="5,6,7",
+        config_overrides_path=tmp_path / "overrides.json",
+        train_timesteps=1234,
+    )
+
+    assert "--train-timesteps" in cmd
+    idx = cmd.index("--train-timesteps")
+    assert cmd[idx + 1] == "1234"
+
+
+def test_build_eval_command_includes_seed_arguments_for_local_runs(tmp_path):
+    cmd = _build_eval_command(
+        use_docker=False,
+        docker_image="shield-train",
+        project_root=tmp_path,
+        runs_root="runs",
+        run_id="run123",
+        checkpoint_path=tmp_path / "ckpt",
+        cuda_visible_devices="5,6,7",
+        seeds_per_scenario=4,
+        seed_start=2001,
+    )
+
+    assert "--seeds-per-scenario" in cmd
+    assert "--seed-start" in cmd
+    assert cmd[cmd.index("--seeds-per-scenario") + 1] == "4"
+    assert cmd[cmd.index("--seed-start") + 1] == "2001"
