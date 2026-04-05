@@ -1,5 +1,5 @@
 import type { WSMessage } from "./integrationContract";
-import { generateMockReplay } from "./mockReplay";
+import { generateScenarioReplay } from "./scenarioReplay";
 import type { ReplayTimeline } from "./replayRuntime";
 import { indexReplayMessages } from "./replayRuntime";
 import {
@@ -15,7 +15,7 @@ export type ScenarioProfileMode = "no_blue" | "current_run_enterprise";
 
 export interface RunMetadata {
   run_id: string;
-  source: "local_bundle" | "mock" | "model_stream";
+  source: "local_bundle" | "generated" | "model_stream";
   scenario_id: string;
   attack_profile_id: AttackProfileId | "campaign_all_5";
   campaign_stage: CampaignStageWindow | null;
@@ -53,10 +53,10 @@ function statusLabelFor(mode: ScenarioProfileMode, source: RunMetadata["source"]
   if (source === "local_bundle") return "LIVE DATA (LOCAL BUNDLE)";
   if (mode === "current_run_enterprise") return "CURRENT RUN (ENTERPRISE LEVEL)";
   if (mode === "no_blue") return "NO BLUE (SIMULATED)";
-  return "MOCK REPLAY";
+  return "SCENARIO REPLAY";
 }
 
-function mockScenarioSeed(scenarioId: AttackProfileId): number {
+function scenarioSeed(scenarioId: AttackProfileId): number {
   const map: Record<AttackProfileId, number> = {
     eduroam_credential_harvest: 1101,
     faculty_spear_phish: 1202,
@@ -124,12 +124,12 @@ async function loadLocalBundleMessages(): Promise<WSMessage[] | null> {
   }
 }
 
-function buildMockRun(selection: ScenarioSelection, mode: ScenarioProfileMode): LoadedScenarioRun {
+function buildScenarioRun(selection: ScenarioSelection, mode: ScenarioProfileMode): LoadedScenarioRun {
   const includeBlue = mode !== "no_blue";
 
   if (selection.kind === "campaign") {
     const totalSteps = modeSteps(mode);
-    const generated = generateMockReplay({
+    const generated = generateScenarioReplay({
       replayId: `${selection.campaign_id}_${mode}`,
       scenarioId: selection.campaign_id,
       totalSteps,
@@ -140,14 +140,14 @@ function buildMockRun(selection: ScenarioSelection, mode: ScenarioProfileMode): 
     const windows = buildCampaignStageWindows(totalSteps);
     const metadataBase = {
       run_id: generated.replayId,
-      source: "mock" as const,
+      source: "generated" as const,
       scenario_id: selection.campaign_id,
       attack_profile_id: selection.campaign_id,
       campaign_windows: windows,
       profile_mode: mode,
       scenario_name: CAMPAIGN_ALL_5.name,
       scenario_description: CAMPAIGN_ALL_5.description,
-      status_label: statusLabelFor(mode, "mock"),
+      status_label: statusLabelFor(mode, "generated"),
     };
 
     return {
@@ -157,24 +157,24 @@ function buildMockRun(selection: ScenarioSelection, mode: ScenarioProfileMode): 
   }
 
   const scenario = getScenarioById(selection.scenario_id);
-  const generated = generateMockReplay({
+  const generated = generateScenarioReplay({
     replayId: `${scenario.id}_${mode}`,
     scenarioId: scenario.id,
     totalSteps: modeSteps(mode),
-    seed: mockScenarioSeed(scenario.id) + (mode === "current_run_enterprise" ? 222 : 0),
+    seed: scenarioSeed(scenario.id) + (mode === "current_run_enterprise" ? 222 : 0),
     includeBlue,
   });
 
   const metadataBase = {
     run_id: generated.replayId,
-    source: "mock" as const,
+    source: "generated" as const,
     scenario_id: scenario.id,
     attack_profile_id: scenario.id,
     campaign_windows: [] as CampaignStageWindow[],
     profile_mode: mode,
     scenario_name: scenario.name,
     scenario_description: scenario.description,
-    status_label: statusLabelFor(mode, "mock"),
+    status_label: statusLabelFor(mode, "generated"),
   };
 
   return {
@@ -212,14 +212,14 @@ export async function loadScenarioRun(selected: SelectedScenarioRun): Promise<Lo
       return local;
     }
 
-    const fallback = buildMockRun(selected.selection, selected.profile_mode);
+    const fallback = buildScenarioRun(selected.selection, selected.profile_mode);
     return {
       ...fallback,
       notice: null,
     };
   }
 
-  return buildMockRun(selected.selection, selected.profile_mode);
+  return buildScenarioRun(selected.selection, selected.profile_mode);
 }
 
 export function deriveActiveCampaignStage(metadata: RunMetadata, step: number): CampaignStageWindow | null {

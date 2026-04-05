@@ -1,0 +1,6 @@
+{
+  "schema_version": "checkpoint_metadata_v1",
+  "checkpoint_type": "metadata_only",
+  "note": "Deterministic episode run; binary checkpoint omitted by design.",
+  "source": "frontend deterministic replay export"
+}

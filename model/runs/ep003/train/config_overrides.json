@@ -1,0 +1,17 @@
+{
+  "max_steps": 240,
+  "scenario_id": "iot_botnet_exhaustion",
+  "episode_id": "episode_003",
+  "mode_overrides": {
+    "enterprise": {
+      "seed": 1525,
+      "max_steps": 240,
+      "blue_team_enabled": true
+    },
+    "no_blue": {
+      "seed": 1303,
+      "max_steps": 200,
+      "blue_team_enabled": false
+    }
+  }
+}

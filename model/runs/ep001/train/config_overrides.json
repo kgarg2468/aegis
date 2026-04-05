@@ -1,0 +1,17 @@
+{
+  "max_steps": 240,
+  "scenario_id": "eduroam_credential_harvest",
+  "episode_id": "episode_001",
+  "mode_overrides": {
+    "enterprise": {
+      "seed": 1323,
+      "max_steps": 240,
+      "blue_team_enabled": true
+    },
+    "no_blue": {
+      "seed": 1101,
+      "max_steps": 200,
+      "blue_team_enabled": false
+    }
+  }
+}

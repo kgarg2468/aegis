@@ -13,7 +13,7 @@ test("loadScenarioRun returns scenario metadata in non-current modes", async () 
 
   assert.equal(loaded.metadata.attack_profile_id, "iot_botnet_exhaustion");
   assert.equal(loaded.metadata.profile_mode, "current_run_enterprise");
-  assert.equal(["mock", "local_bundle"].includes(loaded.metadata.source), true);
+  assert.equal(["generated", "local_bundle"].includes(loaded.metadata.source), true);
   assert.equal(loaded.timeline.frames.length > 0, true);
 });
 

@@ -20,7 +20,11 @@ def _iter_run_dirs() -> list[Path]:
     root = _runs_root()
     if not root.exists():
         return []
-    run_dirs = [p for p in root.iterdir() if p.is_dir() and p.name.startswith("run")]
+    run_dirs = [
+        p
+        for p in root.iterdir()
+        if p.is_dir() and (p.name.startswith("run") or p.name.startswith("ep"))
+    ]
     run_dirs.sort(key=lambda p: p.name)
     return run_dirs
 

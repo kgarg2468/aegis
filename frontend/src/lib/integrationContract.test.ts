@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { createCanonicalTopologyInit, isNodeIdAllowed } from "./integrationContract";
-import { generateMockReplay } from "./mockReplay";
+import { generateScenarioReplay } from "./scenarioReplay";
 
 test("canonical topology contains registry nodes and edge id format source->target", () => {
   const topology = createCanonicalTopologyInit();
@@ -20,8 +20,8 @@ test("canonical topology contains registry nodes and edge id format source->targ
   }
 });
 
-test("mock replay respects event framing contract and topology init order", () => {
-  const replay = generateMockReplay({ totalSteps: 40, seed: 7 });
+test("scenario replay respects event framing contract and topology init order", () => {
+  const replay = generateScenarioReplay({ totalSteps: 40, seed: 7 });
 
   assert.ok(replay.messages.length > 0);
   assert.equal(replay.messages[0]?.type, "topology_init");

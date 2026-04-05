@@ -1,0 +1,17 @@
+{
+  "schema_version": "episode_run_manifest_v1",
+  "run_id": "ep002",
+  "episode_id": "episode_002",
+  "episode_label": "Episode 002",
+  "scenario_id": "faculty_spear_phish",
+  "scenario_display_name": "Faculty Spear Phish -> Research Data Theft",
+  "generated_at": "2026-04-05T18:17:00Z",
+  "generator": "ops/scripts/build_episode_runs.py",
+  "files": {
+    "train_metadata": "runs/ep002/train/train_metadata.json",
+    "eval": "runs/ep002/eval/eval_cli_ep002.json",
+    "selection_manifest": "runs/ep002/replays/selection_manifest.json",
+    "hero_replay_manifest": "runs/ep002/replays/replay_enterprise_01/manifest.json",
+    "no_blue_replay_manifest": "runs/ep002/replays/replay_no_blue_01/manifest.json"
+  }
+}

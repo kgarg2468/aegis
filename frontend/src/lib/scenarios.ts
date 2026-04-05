@@ -9,6 +9,7 @@ export type SeverityProfile = "stealth" | "balanced" | "aggressive" | "surge";
 
 export interface ScenarioRegistryItem {
   id: AttackProfileId;
+  episode_id: string;
   name: string;
   description: string;
   attack_type: string;
@@ -41,6 +42,7 @@ export interface CampaignStageWindow {
 export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
   {
     id: "eduroam_credential_harvest",
+    episode_id: "Episode 001",
     name: "Eduroam Credential Harvesting -> SIS Breach",
     description: "Perimeter credential capture pivoting into SIS access.",
     attack_type: "Credential Theft + Admin Pivot",
@@ -51,6 +53,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
   },
   {
     id: "faculty_spear_phish",
+    episode_id: "Episode 002",
     name: "Faculty Spear Phish -> Research Data Theft",
     description: "Compromised faculty endpoint laterally reaches research assets.",
     attack_type: "Phishing + Lateral Movement + Exfiltration",
@@ -60,6 +63,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
   },
   {
     id: "iot_botnet_exhaustion",
+    episode_id: "Episode 003",
     name: "IoT Botnet -> Resource Exhaustion",
     description: "Distributed IoT compromise driving broad campus service degradation.",
     attack_type: "Distributed Compromise / Availability Attack",
@@ -69,6 +73,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
   },
   {
     id: "insider_ad_backdoor",
+    episode_id: "Episode 004",
     name: "Insider Threat -> AD Backdoor",
     description: "Low-noise internal movement with delayed backdoor reveal.",
     attack_type: "Insider Persistence + Credential Abuse",
@@ -78,6 +83,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
   },
   {
     id: "print_ransomware_propagation",
+    episode_id: "Episode 005",
     name: "Print Server Ransomware Propagation",
     description: "Rapid lateral spread beginning at print infrastructure.",
     attack_type: "Fast Lateral Propagation / Impact",

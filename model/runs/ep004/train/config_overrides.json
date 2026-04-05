@@ -1,0 +1,17 @@
+{
+  "max_steps": 240,
+  "scenario_id": "insider_ad_backdoor",
+  "episode_id": "episode_004",
+  "mode_overrides": {
+    "enterprise": {
+      "seed": 1626,
+      "max_steps": 240,
+      "blue_team_enabled": true
+    },
+    "no_blue": {
+      "seed": 1404,
+      "max_steps": 200,
+      "blue_team_enabled": false
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "schema_version": "episode_eval_v1",
+  "run_id": "ep005",
+  "episode_id": "episode_005",
+  "episode_label": "Episode 005",
+  "scenario_id": "print_ransomware_propagation",
+  "scenario_display_name": "Print Server Ransomware Propagation",
+  "generated_at": "2026-04-05T19:10:00Z",
+  "modes": {
+    "enterprise": {
+      "mode": "enterprise",
+      "replay_id": "replay_enterprise_01",
+      "seed": 1727,
+      "steps": 240,
+      "outcome": "contained",
+      "kpis": {
+        "damage_score": 0.12,
+        "containment_time_steps": 1,
+        "hvts_compromised": 1,
+        "data_exfiltrated": false,
+        "final_service_availability": 0.88,
+        "blue_reward_total": 42.89
+      },
+      "bundle_path": "runs/ep005/replays/replay_enterprise_01"
+    },
+    "no_blue": {
+      "mode": "no_blue",
+      "replay_id": "replay_no_blue_01",
+      "seed": 1505,
+      "steps": 200,
+      "outcome": "breached",
+      "kpis": {
+        "damage_score": 0.21,
+        "containment_time_steps": 1,
+        "hvts_compromised": 2,
+        "data_exfiltrated": true,
+        "final_service_availability": 0.79,
+        "blue_reward_total": 10
+      },
+      "bundle_path": "runs/ep005/replays/replay_no_blue_01"
+    }
+  },
+  "comparison": {
+    "enterprise_vs_no_blue": {
+      "damage_score_delta": 0.09,
+      "containment_time_steps_delta": 0,
+      "hvts_compromised_delta": 1,
+      "service_availability_delta": 0.09,
+      "blue_reward_delta": 32.89,
+      "data_exfiltration_prevented": true
+    }
+  }
+}

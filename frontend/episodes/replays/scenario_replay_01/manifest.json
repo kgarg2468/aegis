@@ -1,0 +1,21 @@
+{
+  "replay_id": "scenario_replay_01",
+  "scenario_id": "faculty_phish",
+  "scenario_display_name": "Faculty Spear Phish -> Research Data Theft",
+  "seed": 1003,
+  "checkpoint_id": "ckpt_blue_scenario_0001",
+  "duration_steps": 200,
+  "total_events": 1168,
+  "outcome": "contained",
+  "kpis": {
+    "damage_score": 0.16,
+    "containment_time_steps": 34,
+    "hvts_compromised": 20,
+    "data_exfiltrated": false
+  },
+  "files": {
+    "events": "events.jsonl",
+    "topology": "topology_snapshots.json",
+    "metrics": "metrics.json"
+  }
+}

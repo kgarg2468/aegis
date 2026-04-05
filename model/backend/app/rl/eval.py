@@ -95,20 +95,31 @@ def _load_trained_policy(checkpoint_path: str | None) -> Callable[[dict], list[i
         return rule.select_action
 
     try:
-        import ray
-        from ray.rllib.algorithms.algorithm import Algorithm
+        from ray.rllib.policy.policy import Policy
     except ImportError:
         rule = RuleBasedBaseline()
         return rule.select_action
 
-    ray.init(ignore_reinit_error=True)
+    policy_checkpoint = checkpoint / "policies" / "default_policy"
+    if not policy_checkpoint.exists():
+        policy_checkpoint = checkpoint
+
     _register_rllib_components()
 
-    algo = Algorithm.from_checkpoint(str(checkpoint.resolve()))
+    try:
+        policy = Policy.from_checkpoint(str(policy_checkpoint.resolve()))
+    except Exception:
+        rule = RuleBasedBaseline()
+        return rule.select_action
 
     def select_action(obs: dict) -> list[int]:
-        action = algo.compute_single_action(obs, explore=False)
-        return [int(action[0]), int(action[1])]
+        action = policy.compute_single_action(obs, explore=False)
+        if isinstance(action, tuple):
+            action = action[0]
+        action_arr = np.asarray(action).reshape(-1)
+        if action_arr.size < 2:
+            return [0, 0]
+        return [int(action_arr[0]), int(action_arr[1])]
 
     return select_action
 

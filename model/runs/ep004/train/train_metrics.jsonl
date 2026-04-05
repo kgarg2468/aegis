@@ -1,0 +1,12 @@
+{"step":20,"service_availability":1.0,"attack_pressure":0.02,"containment_pressure":0.13,"blue_reward_cumulative":3.72,"red_score_cumulative":1.59,"open_incidents":0}
+{"step":40,"service_availability":1.0,"attack_pressure":0.03,"containment_pressure":0.13,"blue_reward_cumulative":7.13,"red_score_cumulative":3.57,"open_incidents":0}
+{"step":60,"service_availability":1.0,"attack_pressure":0.05,"containment_pressure":0.13,"blue_reward_cumulative":10.56,"red_score_cumulative":5.74,"open_incidents":0}
+{"step":80,"service_availability":0.97,"attack_pressure":0.15,"containment_pressure":0.13,"blue_reward_cumulative":13.75,"red_score_cumulative":7.79,"open_incidents":1}
+{"step":100,"service_availability":0.97,"attack_pressure":0.17,"containment_pressure":0.13,"blue_reward_cumulative":17.26,"red_score_cumulative":10.4,"open_incidents":1}
+{"step":120,"service_availability":0.97,"attack_pressure":0.18,"containment_pressure":0.21,"blue_reward_cumulative":20.98,"red_score_cumulative":13.2,"open_incidents":0}
+{"step":140,"service_availability":0.93,"attack_pressure":0.28,"containment_pressure":0.13,"blue_reward_cumulative":24.33,"red_score_cumulative":16.25,"open_incidents":2}
+{"step":160,"service_availability":0.92,"attack_pressure":0.3,"containment_pressure":0.21,"blue_reward_cumulative":28.07,"red_score_cumulative":19.48,"open_incidents":1}
+{"step":180,"service_availability":0.93,"attack_pressure":0.32,"containment_pressure":0.21,"blue_reward_cumulative":31.57,"red_score_cumulative":22.66,"open_incidents":2}
+{"step":200,"service_availability":0.88,"attack_pressure":0.42,"containment_pressure":0.21,"blue_reward_cumulative":35.34,"red_score_cumulative":26.08,"open_incidents":2}
+{"step":220,"service_availability":0.89,"attack_pressure":0.43,"containment_pressure":0.21,"blue_reward_cumulative":38.72,"red_score_cumulative":29.81,"open_incidents":3}
+{"step":240,"service_availability":0.88,"attack_pressure":0.45,"containment_pressure":0.21,"blue_reward_cumulative":42.56,"red_score_cumulative":33.65,"open_incidents":2}

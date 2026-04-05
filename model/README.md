@@ -34,6 +34,12 @@ make train RUNS_ROOT=runs RUN_ID=run001
 # Eval + replay packaging (set seeds_per_scenario for tighter CI bounds)
 make eval RUNS_ROOT=runs RUN_ID=run001 CHECKPOINT=/path/to/checkpoint EVAL_SEEDS_PER_SCENARIO=4 EVAL_SEED_START=2001
 
+# Eval all runs that have train/final checkpoints
+make eval-all RUNS_ROOT=runs USE_DOCKER=false EVAL_SEEDS_PER_SCENARIO=2 EVAL_SEED_START=1001
+
+# Docker-backed eval-all (useful on Apple Silicon or when local train deps are unavailable)
+make eval-all RUNS_ROOT=runs USE_DOCKER=true DOCKER_PLATFORM=linux/amd64 SHM_SIZE=2g EVAL_SEEDS_PER_SCENARIO=2 EVAL_SEED_START=1001
+
 # Validate a replay bundle
 make validate-replay BUNDLE=runs/run001/replays/replay_hero_01
 
@@ -45,6 +51,40 @@ make autopilot RUNS_ROOT=runs START_RUN_ID=run006 NUM_RUNS=12 SWEEP_SPEC=ops/swe
 ```
 
 Autopilot artifacts are written to `runs/autopilot/session_<timestamp>.json` and `.csv`.
+
+## Demo episodes
+
+Deterministic episode runs for UI/demo playback are stored under:
+
+- `runs/ep001`
+- `runs/ep002`
+- `runs/ep003`
+- `runs/ep004`
+- `runs/ep005`
+
+Build and verify:
+
+```bash
+make demo-episodes RUNS_ROOT=runs FRONTEND_ROOT=../frontend
+make verify-demo-episodes RUNS_ROOT=runs FRONTEND_ROOT=../frontend
+```
+
+Provenance for each episode is documented in `DEMO_PROVENANCE.md`.
+
+## Live proof (judge demo)
+
+Use these commands live to prove reproducibility and integrity:
+
+```bash
+# 1) Rebuild deterministic episode artifacts
+make demo-episodes RUNS_ROOT=runs FRONTEND_ROOT=../frontend
+
+# 2) Verify checksums + replay contract + frontend parity hashes
+make verify-demo-episodes RUNS_ROOT=runs FRONTEND_ROOT=../frontend
+
+# 3) Run one fresh backend eval command on a trained run
+make eval RUNS_ROOT=runs RUN_ID=run010 CHECKPOINT=runs/run010/train/final EVAL_SEEDS_PER_SCENARIO=1 EVAL_SEED_START=3001
+```
 
 ## Docker-first run
 

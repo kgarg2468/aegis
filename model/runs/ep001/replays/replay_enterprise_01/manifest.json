@@ -1,0 +1,24 @@
+{
+  "replay_id": "replay_enterprise_01",
+  "scenario_id": "eduroam_credential_harvest",
+  "scenario_display_name": "Eduroam Credential Harvesting -> SIS Breach",
+  "mode": "enterprise",
+  "seed": 1323,
+  "checkpoint_id": "episode_rebuild_frontend_deterministic",
+  "duration_steps": 240,
+  "total_events": 1407,
+  "outcome": "contained",
+  "kpis": {
+    "damage_score": 0.07,
+    "containment_time_steps": 1,
+    "hvts_compromised": 0,
+    "data_exfiltrated": false,
+    "final_service_availability": 0.93,
+    "blue_reward_total": 45.3
+  },
+  "files": {
+    "events": "events.jsonl",
+    "topology": "topology_snapshots.json",
+    "metrics": "metrics.json"
+  }
+}

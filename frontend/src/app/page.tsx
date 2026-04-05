@@ -749,7 +749,9 @@ export default function Home() {
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-[240px] flex-1">
-                        <div className="font-mono text-xs uppercase tracking-[0.12em] text-[#efe8da]">{scenario.name}</div>
+                        <div className="font-mono text-xs uppercase tracking-[0.12em] text-[#efe8da]">
+                          {scenario.episode_id} - {scenario.name}
+                        </div>
                         <p className="mt-1 text-xs text-[var(--text-secondary)]">{scenario.description}</p>
                         <div className="mt-2 text-[11px] text-[var(--text-secondary)]">Attack type: {scenario.attack_type}</div>
                         <div className="text-[11px] text-[var(--text-secondary)]">Severity profile: {scenario.severity_profile}</div>

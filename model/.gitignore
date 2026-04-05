@@ -2,5 +2,15 @@
 __pycache__/
 .pytest_cache/
 *.pyc
-runs/
+runs/*
+!runs/ep001/
+!runs/ep001/**
+!runs/ep002/
+!runs/ep002/**
+!runs/ep003/
+!runs/ep003/**
+!runs/ep004/
+!runs/ep004/**
+!runs/ep005/
+!runs/ep005/**
 secrets.txt

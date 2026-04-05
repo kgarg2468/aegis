@@ -1,0 +1,53 @@
+{
+  "schema_version": "episode_eval_v1",
+  "run_id": "ep003",
+  "episode_id": "episode_003",
+  "episode_label": "Episode 003",
+  "scenario_id": "iot_botnet_exhaustion",
+  "scenario_display_name": "IoT Botnet -> Resource Exhaustion",
+  "generated_at": "2026-04-05T18:36:00Z",
+  "modes": {
+    "enterprise": {
+      "mode": "enterprise",
+      "replay_id": "replay_enterprise_01",
+      "seed": 1525,
+      "steps": 240,
+      "outcome": "contained",
+      "kpis": {
+        "damage_score": 0.07,
+        "containment_time_steps": 1,
+        "hvts_compromised": 1,
+        "data_exfiltrated": false,
+        "final_service_availability": 0.93,
+        "blue_reward_total": 45.63
+      },
+      "bundle_path": "runs/ep003/replays/replay_enterprise_01"
+    },
+    "no_blue": {
+      "mode": "no_blue",
+      "replay_id": "replay_no_blue_01",
+      "seed": 1303,
+      "steps": 200,
+      "outcome": "breached",
+      "kpis": {
+        "damage_score": 0.21,
+        "containment_time_steps": 1,
+        "hvts_compromised": 2,
+        "data_exfiltrated": true,
+        "final_service_availability": 0.79,
+        "blue_reward_total": 10
+      },
+      "bundle_path": "runs/ep003/replays/replay_no_blue_01"
+    }
+  },
+  "comparison": {
+    "enterprise_vs_no_blue": {
+      "damage_score_delta": 0.14,
+      "containment_time_steps_delta": 0,
+      "hvts_compromised_delta": 1,
+      "service_availability_delta": 0.14,
+      "blue_reward_delta": 35.63,
+      "data_exfiltration_prevented": true
+    }
+  }
+}

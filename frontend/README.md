@@ -33,18 +33,18 @@ Then open:
 
 ## Contract-First Replay Dev
 
-Generate a deterministic mock replay bundle that follows the AEGIS integration contract:
+Generate a deterministic scenario replay bundle that follows the AEGIS integration contract:
 
 ```bash
-npm run generate:mock-replay
+npm run generate:scenario-replay
 ```
 
 This writes:
 
-- `frontend/mock/replays/mock_replay_01/manifest.json`
-- `frontend/mock/replays/mock_replay_01/events.jsonl`
-- `frontend/mock/replays/mock_replay_01/topology_snapshots.json`
-- `frontend/mock/replays/mock_replay_01/metrics.json`
+- `frontend/episodes/replays/scenario_replay_01/manifest.json`
+- `frontend/episodes/replays/scenario_replay_01/events.jsonl`
+- `frontend/episodes/replays/scenario_replay_01/topology_snapshots.json`
+- `frontend/episodes/replays/scenario_replay_01/metrics.json`
 
 Run contract-focused frontend tests:
 
@@ -59,7 +59,7 @@ npm run test:contract
   - `Episode Vault` for scenario/campaign selection
   - `Mission Brief` for plain-language explanation
 - Replay ingestion is contract-ready through the canonical `WSMessage` event model (`type + data` routing).
-- The adapter layer in `src/lib/replayAdapter.ts` unifies mock + local replay loading and keeps metadata needed for future model runs.
+- The adapter layer in `src/lib/replayAdapter.ts` unifies generated + local replay loading and keeps metadata needed for future model runs.
 - To plug in future model-backed streams, keep emitting contract-compatible events and map backend run metadata to:
   - `scenario_id`
   - `attack_profile_id`

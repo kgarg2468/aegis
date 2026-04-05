@@ -1,0 +1,24 @@
+{
+  "replay_id": "replay_enterprise_01",
+  "scenario_id": "faculty_spear_phish",
+  "scenario_display_name": "Faculty Spear Phish -> Research Data Theft",
+  "mode": "enterprise",
+  "seed": 1424,
+  "checkpoint_id": "episode_rebuild_frontend_deterministic",
+  "duration_steps": 240,
+  "total_events": 1411,
+  "outcome": "contained",
+  "kpis": {
+    "damage_score": 0.12,
+    "containment_time_steps": 1,
+    "hvts_compromised": 1,
+    "data_exfiltrated": false,
+    "final_service_availability": 0.88,
+    "blue_reward_total": 43.72
+  },
+  "files": {
+    "events": "events.jsonl",
+    "topology": "topology_snapshots.json",
+    "metrics": "metrics.json"
+  }
+}

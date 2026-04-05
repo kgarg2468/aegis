@@ -1,0 +1,12 @@
+{"step":20,"service_availability":1.0,"attack_pressure":0.02,"containment_pressure":0.04,"blue_reward_cumulative":3.02,"red_score_cumulative":1.76,"open_incidents":0}
+{"step":40,"service_availability":1.0,"attack_pressure":0.03,"containment_pressure":0.13,"blue_reward_cumulative":6.7,"red_score_cumulative":3.66,"open_incidents":0}
+{"step":60,"service_availability":1.0,"attack_pressure":0.05,"containment_pressure":0.13,"blue_reward_cumulative":10.41,"red_score_cumulative":5.55,"open_incidents":0}
+{"step":80,"service_availability":0.96,"attack_pressure":0.15,"containment_pressure":0.13,"blue_reward_cumulative":14.09,"red_score_cumulative":7.74,"open_incidents":0}
+{"step":100,"service_availability":0.97,"attack_pressure":0.17,"containment_pressure":0.13,"blue_reward_cumulative":17.75,"red_score_cumulative":10.13,"open_incidents":1}
+{"step":120,"service_availability":0.91,"attack_pressure":0.27,"containment_pressure":0.13,"blue_reward_cumulative":21.29,"red_score_cumulative":13.04,"open_incidents":1}
+{"step":140,"service_availability":0.93,"attack_pressure":0.28,"containment_pressure":0.13,"blue_reward_cumulative":24.83,"red_score_cumulative":16.08,"open_incidents":2}
+{"step":160,"service_availability":0.92,"attack_pressure":0.3,"containment_pressure":0.21,"blue_reward_cumulative":28.26,"red_score_cumulative":19.03,"open_incidents":1}
+{"step":180,"service_availability":0.93,"attack_pressure":0.32,"containment_pressure":0.21,"blue_reward_cumulative":32.16,"red_score_cumulative":22.27,"open_incidents":2}
+{"step":200,"service_availability":0.93,"attack_pressure":0.33,"containment_pressure":0.29,"blue_reward_cumulative":35.92,"red_score_cumulative":25.88,"open_incidents":1}
+{"step":220,"service_availability":0.89,"attack_pressure":0.43,"containment_pressure":0.21,"blue_reward_cumulative":39.63,"red_score_cumulative":29.32,"open_incidents":3}
+{"step":240,"service_availability":0.88,"attack_pressure":0.45,"containment_pressure":0.21,"blue_reward_cumulative":42.89,"red_score_cumulative":33.05,"open_incidents":2}

@@ -1,0 +1,17 @@
+{
+  "max_steps": 240,
+  "scenario_id": "faculty_spear_phish",
+  "episode_id": "episode_002",
+  "mode_overrides": {
+    "enterprise": {
+      "seed": 1424,
+      "max_steps": 240,
+      "blue_team_enabled": true
+    },
+    "no_blue": {
+      "seed": 1202,
+      "max_steps": 200,
+      "blue_team_enabled": false
+    }
+  }
+}

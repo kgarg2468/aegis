@@ -1,0 +1,5 @@
+$ /Users/krishgarg/Documents/Projects/shield/model/.venv/bin/python3 /Users/krishgarg/Documents/Projects/shield/model/ops/scripts/validate_replay.py /Users/krishgarg/Documents/Projects/shield/model/runs/ep002/replays/replay_enterprise_01
+0 errors found
+
+$ /Users/krishgarg/Documents/Projects/shield/model/.venv/bin/python3 /Users/krishgarg/Documents/Projects/shield/model/ops/scripts/validate_replay.py /Users/krishgarg/Documents/Projects/shield/model/runs/ep002/replays/replay_no_blue_01
+0 errors found

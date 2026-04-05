@@ -1,0 +1,20 @@
+{
+  "hero": "replay_enterprise_01",
+  "backups": [
+    "replay_no_blue_01"
+  ],
+  "mapping": {
+    "replay_enterprise_01": {
+      "mode": "enterprise",
+      "scenario_id": "print_ransomware_propagation",
+      "seed": 1727,
+      "steps": 240
+    },
+    "replay_no_blue_01": {
+      "mode": "no_blue",
+      "scenario_id": "print_ransomware_propagation",
+      "seed": 1505,
+      "steps": 200
+    }
+  }
+}

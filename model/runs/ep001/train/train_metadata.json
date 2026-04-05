@@ -1,0 +1,46 @@
+{
+  "schema_version": "episode_train_metadata_v1",
+  "run_id": "ep001",
+  "episode_id": "episode_001",
+  "episode_label": "Episode 001",
+  "scenario_id": "eduroam_credential_harvest",
+  "scenario_display_name": "Eduroam Credential Harvesting -> SIS Breach",
+  "stage": "full",
+  "generated_at": "2026-04-05T18:01:00Z",
+  "generator": "ops/scripts/build_episode_runs.py",
+  "cluster_profile": "enterprise_demo_cluster",
+  "modes": {
+    "enterprise": {
+      "mode": "enterprise",
+      "replay_id": "replay_enterprise_01",
+      "seed": 1323,
+      "steps": 240,
+      "outcome": "contained",
+      "kpis": {
+        "damage_score": 0.07,
+        "containment_time_steps": 1,
+        "hvts_compromised": 0,
+        "data_exfiltrated": false,
+        "final_service_availability": 0.93,
+        "blue_reward_total": 45.3
+      },
+      "bundle_path": "runs/ep001/replays/replay_enterprise_01"
+    },
+    "no_blue": {
+      "mode": "no_blue",
+      "replay_id": "replay_no_blue_01",
+      "seed": 1101,
+      "steps": 200,
+      "outcome": "breached",
+      "kpis": {
+        "damage_score": 0.21,
+        "containment_time_steps": 1,
+        "hvts_compromised": 2,
+        "data_exfiltrated": true,
+        "final_service_availability": 0.79,
+        "blue_reward_total": 10
+      },
+      "bundle_path": "runs/ep001/replays/replay_no_blue_01"
+    }
+  }
+}
