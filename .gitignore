@@ -1,0 +1,14 @@
+# Secrets and environment files
+.env
+.env.*
+**/.env
+**/.env.*
+secrets.txt
+**/secrets.txt
+
+# Common local secret artifacts
+*.pem
+*.key
+*.p12
+*.pfx
+
